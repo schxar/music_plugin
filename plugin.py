@@ -73,12 +73,14 @@ class MusicSearchAction(BaseAction):
     action_parameters = {
         "song_name": "要搜索的歌曲名称",
         "quality": "音质要求(1-9，可选)",
-        "direct_url": "是否直接发送直链（布尔，true为直链，false为先尝试卡片）"
+        "direct_url": "是否直接发送直链（布尔，true为直链，false为先尝试卡片,默认为false）"
     }
     action_require = [
         "用户想要听音乐时使用",
         "用户询问音乐相关信息时使用",
         "用户想要点歌时使用"
+        "direct_url如果无需求默认为false，表示先尝试发送音乐卡片",
+        "如果用户明确要求直链则设置为true"
     ]
     associated_types = ["text"]
 
