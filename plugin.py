@@ -2,6 +2,7 @@ from typing import List, Tuple, Type
 import aiohttp
 import json
 import random
+import re
 from src.plugin_system.base.base_plugin import BasePlugin, register_plugin
 from src.plugin_system.base.base_action import BaseAction, ActionActivationType, ChatMode
 from src.plugin_system.base.base_command import BaseCommand
@@ -76,11 +77,12 @@ class MusicSearchAction(BaseAction):
         "direct_url": "是否直接发送直链（布尔，true为直链，false为先尝试卡片,默认为false）"
     }
     action_require = [
-        "用户想要听音乐时使用",
-        "用户询问音乐相关信息时使用",
-        "用户想要点歌时使用"
-        "direct_url如果无需求默认为false，表示先尝试发送音乐卡片",
-        "如果用户明确要求直链则设置为true"
+        "仅当用户明确表达想要听音乐、点歌、或询问音乐相关信息时才调用本动作。",
+        "如果用户只是随口提到音乐、歌曲等词汇，但没有明确要求点歌，不要执行本动作。",
+        "请勿在没有新用户输入的情况下重复执行本动作，除非用户有新的点歌请求。",
+        "如果用户已经点过歌，除非用户明确要求再次点歌，否则不要连续执行本动作。",
+        "如果用户没有指定歌曲名，请主动询问用户想听什么歌，不要随意推荐。",
+        "如用户明确要求直链，则发送直链，否则优先尝试发送音乐卡片。"
     ]
     associated_types = ["text"]
 
@@ -113,40 +115,22 @@ class MusicSearchAction(BaseAction):
         return None, False
 
     async def _send_ask_song_name(self, chat_stream):
-        target_id, is_group = self._get_target_info(chat_stream)
-        if target_id:
-            await send_api.custom_message(
-                message_type="text",
-                content="请告诉我你想听什么歌曲~",
-                target_id=target_id,
-                is_group=is_group
-            )
+        if chat_stream:
+            await self.send_text("请告诉我你想听什么歌曲~")
 
     async def _handle_api_success(self, music_info, direct_url=False):
         await self._send_music_info(music_info, direct_url)
         return True, f"找到音乐: {music_info.get('song', '未知')}"
 
     async def _handle_api_failure(self, chat_stream):
-        target_id, is_group = self._get_target_info(chat_stream)
-        if target_id:
-            await send_api.custom_message(
-                message_type="text",
-                content="搜索失败: 未找到合适的音乐，请稍后再试",
-                target_id=target_id,
-                is_group=is_group
-            )
+        if chat_stream:
+            await self.send_text("搜索失败: 未找到合适的音乐，请稍后再试")
         return False, "API返回错误"
 
     async def _handle_exception(self, chat_stream, e):
         logger.error(f"音乐搜索失败: {e}")
-        target_id, is_group = self._get_target_info(chat_stream)
-        if target_id:
-            await send_api.custom_message(
-                message_type="text",
-                content="搜索音乐时出现错误，请稍后再试",
-                target_id=target_id,
-                is_group=is_group
-            )
+        if chat_stream:
+            await self.send_text("搜索音乐时出现错误，请稍后再试")
         return False, f"搜索失败: {str(e)}"
 
     async def execute(self) -> Tuple[bool, str]:
@@ -174,19 +158,7 @@ class MusicSearchAction(BaseAction):
         chat_stream = getattr(self, "chat_stream", None)
         if direct_url:
             if chat_stream and url:
-                group_info = getattr(chat_stream, "group_info", None)
-                if group_info and getattr(group_info, "group_id", None):
-                    target_id = group_info.group_id
-                else:
-                    target_id = getattr(chat_stream.user_info, "user_id", None)
-                is_group = group_info is not None
-                if target_id is not None:
-                    await send_api.custom_message(
-                        message_type="text",
-                        content=f"播放链接：{song} {url}",
-                        target_id=target_id,
-                        is_group=is_group
-                    )
+                await self.send_text(f"播放链接：{song} {url}")
             return
         napcat_card_sent = False
         # Napcat音乐卡片优先尝试
@@ -215,39 +187,27 @@ class MusicSearchAction(BaseAction):
                         # 发送成功后调用generator生成消息
                         from .generator_tools import generate_rewrite_reply
                         if chat_stream:
-                            status, reply = await generate_rewrite_reply(chat_stream, f"Napcat音乐卡片发送成功：{song}", "music_plugin Napcat卡片发送成功提示")
-                            group_info = getattr(chat_stream, "group_info", None)
-                            if group_info and getattr(group_info, "group_id", None):
-                                target_id = group_info.group_id
+                            result_status, result_message = await generator_api.rewrite_reply(
+                                chat_stream=chat_stream,
+                                reply_data={
+                                    "raw_reply": f"Napcat音乐卡片发送成功：{song}",
+                                    "reason": "music_plugin Napcat卡片发送成功提示润色"
+                                }
+                            )
+                            if result_status:
+                                for reply_seg in result_message:
+                                    data = reply_seg[1]
+                                    await self.send_text(data)
+                                    await asyncio.sleep(1.0)
                             else:
-                                target_id = getattr(chat_stream.user_info, "user_id", None)
-                            is_group = group_info is not None
-                            if status and reply and target_id is not None:
-                                await send_api.custom_message(
-                                    message_type="text",
-                                    content=reply,
-                                    target_id=target_id,
-                                    is_group=is_group
-                                )
+                                await self.send_text(f"Napcat音乐卡片发送成功：{song}")
                 except Exception as e:
                     logger.warning(f"Napcat响应解析失败: {e}")
         except Exception as e:
             logger.warning(f"Napcat音乐卡片发送失败: {e}")
         # 只有Napcat卡片未成功时才发直达链接
         if not napcat_card_sent and chat_stream and url:
-            group_info = getattr(chat_stream, "group_info", None)
-            if group_info and getattr(group_info, "group_id", None):
-                target_id = group_info.group_id
-            else:
-                target_id = getattr(chat_stream.user_info, "user_id", None)
-            is_group = group_info is not None
-            if target_id is not None:
-                await send_api.custom_message(
-                    message_type="text",
-                    content=f"播放链接：{song}       {url}",
-                    target_id=target_id,
-                    is_group=is_group
-                )
+            await self.send_text(f"播放链接：{song} {url}")
 
 # ===== Command组件 =====
 
@@ -361,19 +321,22 @@ class MusicCommand(BaseCommand):
         else:
             status, reply = False, None
         if chat_stream:
-            group_info = getattr(chat_stream, "group_info", None)
-            if group_info and getattr(group_info, "group_id", None) is not None:
-                target_id = group_info.group_id
+            if status and reply:
+                await self.send_text(reply)
             else:
-                target_id = getattr(chat_stream.user_info, "user_id", None)
-            is_group = group_info is not None
-            if target_id is not None:
-                await send_api.custom_message(
-                    message_type="text",
-                    content=reply if (status and reply) else message,
-                    target_id=target_id,
-                    is_group=is_group
-                )
+                group_info = getattr(chat_stream, "group_info", None)
+                if group_info and getattr(group_info, "group_id", None):
+                    target_id = group_info.group_id
+                else:
+                    target_id = getattr(chat_stream.user_info, "user_id", None)
+                is_group = group_info is not None
+                if target_id is not None:
+                    await send_api.custom_message(
+                        message_type="text",
+                        content=message,
+                        target_id=target_id,
+                        is_group=is_group
+                    )
         # 如果有封面图片，可以发送图片
         # 已移除封面图片发送逻辑（小程序卡片自带封面）
         # ===== 新增：发送音乐小程序卡片到群聊（Napcat 4998） =====
@@ -397,20 +360,20 @@ class MusicCommand(BaseCommand):
                         napcat_card_sent = True
                         # 发送成功后调用generator生成消息
                         if chat_stream:
-                            status2, reply2 = await generate_rewrite_reply(chat_stream, f"Napcat音乐卡片发送成功：{song}", "music_plugin Napcat卡片发送成功提示")
-                            group_info = getattr(chat_stream, "group_info", None)
-                            if group_info and getattr(group_info, "group_id", None):
-                                target_id2 = group_info.group_id
+                            result_status, result_message = await generator_api.rewrite_reply(
+                                chat_stream=chat_stream,
+                                reply_data={
+                                    "raw_reply": f"Napcat音乐卡片发送成功：{song}",
+                                    "reason": "music_plugin Napcat卡片发送成功提示"
+                                }
+                            )
+                            if result_status:
+                                for reply_seg in result_message:
+                                    data = reply_seg[1]
+                                    await self.send_text(data)
+                                    await asyncio.sleep(1.0)
                             else:
-                                target_id2 = getattr(chat_stream.user_info, "user_id", None)
-                            is_group2 = group_info is not None
-                            if status2 and reply2 and target_id2 is not None:
-                                await send_api.custom_message(
-                                    message_type="text",
-                                    content=reply2,
-                                    target_id=target_id2,
-                                    is_group=is_group2
-                                )
+                                await self.send_text(f"Napcat音乐卡片发送成功：{song}")
                 except Exception as e:
                     logger.warning(f"Napcat响应解析失败: {e}")
         except Exception as e:
