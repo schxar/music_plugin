@@ -1,0 +1,37 @@
+{
+  "manifest_version": 1,
+  "name": "网易云点歌插件",
+  "version": "0.1.0",
+  "description": "网易云点歌插件",
+  "author": {
+    "name": "靓仔",
+    "url": "https://github.com/your-username"
+  },
+  "license": "MIT",
+  "host_application": {
+    "min_version": "0.8.0",
+    "max_version": "0.8.0"
+  },
+  "homepage_url": "https://github.com/your-repo",
+  "repository_url": "https://github.com/your-repo",
+  "keywords": [
+    "keyword1",
+    "keyword2"
+  ],
+  "categories": [
+    "Category1"
+  ],
+  "default_locale": "zh-CN",
+  "locales_path": "_locales",
+  "plugin_info": {
+    "is_built_in": false,
+    "plugin_type": "general",
+    "components": [
+      {
+        "type": "action",
+        "name": "sample_action",
+        "description": "示例动作组件"
+      }
+    ]
+  }
+}

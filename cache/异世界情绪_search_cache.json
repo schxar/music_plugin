@@ -1,0 +1,26 @@
+[
+  {
+    "choose": 1,
+    "data": {
+      "code": 200,
+      "message": "请求成功！",
+      "data": {
+        "id": 1907751320,
+        "song": "シリウスの心臓",
+        "singer": "ヰ世界情緒",
+        "album": "創生",
+        "time": "2023-01-18",
+        "quality": "高清臻音（Spatial Autio）",
+        "cover": "http://p4.music.126.net/c1JArnXMoUkEQdS1EcLXyw==/109951168567591834.jpg",
+        "interval": "4分58秒",
+        "link": "https://music.163.com/#/song?id=1907751320",
+        "size": "102.65MB",
+        "kbps": "2888kbps",
+        "url": "http://m7.music.126.net/20250622062258/90bd046981ee3d925c53f01a319f5776/ymusic/obj/w5zDlMODwrDDiGjCn8Ky/27285438055/8edc/348f/5658/fb8b972b74472078bad641dc4d51e0bc.flac?vuutv=EEMd6DTUBLp8pha2gKRliXTxkikZ6P0GPiit+52nskUmnvPRRCS5Q3KbJu2D/9YJiblbDrnH3Py1Uk5thQ8xlvdgbf9vdHD4lpFcBoKyJQs="
+      },
+      "time": "2025-06-22 05:57:58",
+      "pid": 105,
+      "tips": "欢迎使用API-Server"
+    }
+  }
+]

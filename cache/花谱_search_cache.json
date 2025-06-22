@@ -1,0 +1,26 @@
+[
+  {
+    "choose": 1,
+    "data": {
+      "code": 200,
+      "message": "请求成功！",
+      "data": {
+        "id": 1399847996,
+        "song": "過去を喰らう",
+        "singer": "花譜",
+        "album": "観測",
+        "time": "2023-01-18",
+        "quality": "高清臻音（Spatial Autio）",
+        "cover": "http://p4.music.126.net/bql6msFGCTQPFaMiUGoSOw==/109951168567598204.jpg",
+        "interval": "4分2秒",
+        "link": "https://music.163.com/#/song?id=1399847996",
+        "size": "89.15MB",
+        "kbps": "3085kbps",
+        "url": "http://m7.music.126.net/20250622061626/ab82bc227b99a81b3b3a6bb49c12bffc/ymusic/obj/w5zDlMODwrDDiGjCn8Ky/27172890719/81a2/7bf2/facd/e4c24f40959d6432514cb0a3a38e8e3e.flac?vuutv=6m9Q/3UCaTNG/k4Jub6RgyBLzq80T4s7U613ZH4gIDLP4uYp/i+7CbQaYnPTnEPCyAZ5WXIP8NbIkTuQ25RY6qk3qr9asF2+qnPIkMkQVTU="
+      },
+      "time": "2025-06-22 05:51:26",
+      "pid": 14,
+      "tips": "欢迎使用API-Server"
+    }
+  }
+]

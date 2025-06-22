@@ -1,0 +1,26 @@
+[
+  {
+    "choose": 1,
+    "data": {
+      "code": 200,
+      "message": "请求成功！",
+      "data": {
+        "id": 17617362,
+        "song": "Larmes de caramel",
+        "singer": "Elsa Kopf",
+        "album": "Acoustic Joys",
+        "time": "2011-03-28",
+        "quality": "HQ极高（320k）",
+        "cover": "http://p3.music.126.net/wMgndAh7ZoWGIwBV9oaccA==/6660841442107870.jpg",
+        "interval": "3分6秒",
+        "link": "https://music.163.com/#/song?id=17617362",
+        "size": "7.13MB",
+        "kbps": "320kbps",
+        "url": "http://m801.music.126.net/20250622061451/aa0491a54e1a79ca40d356a8e45cb004/jdymusic/obj/wo3DlMOGwrbDjj7DisKw/28481996879/5817/873b/506f/83c5ae9a3f40134b9e2cd6d7325fe871.mp3?vuutv=6on8a4Pzj4sodlJZWqGz3/hJePmTlF/yiyeVydUNWDdu2/ILF5YSGVAyNwuw9Vs0tXwX7XXjhn1QrJDlHd6NbevEOghQsKlrCUeG56YCYO4="
+      },
+      "time": "2025-06-22 05:50:18",
+      "pid": 34,
+      "tips": "欢迎使用API-Server"
+    }
+  }
+]

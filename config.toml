@@ -1,0 +1,40 @@
+# music_plugin - 自动生成的配置文件
+# 网易云点歌插件
+
+# 插件基本配置
+[plugin]
+
+# 是否启用插件
+enabled = true
+
+
+# API接口配置
+[api]
+
+# 音乐API基础URL
+base_url = "https://api.vkeys.cn"
+
+# API请求超时时间(秒)
+timeout = 10
+
+
+# 音乐功能配置
+[music]
+
+# 默认音质等级(1-9)
+default_quality = "9"
+
+# 最大搜索结果数
+max_search_results = 10
+
+
+# 功能开关配置
+[features]
+
+# 是否显示专辑封面
+show_cover = false
+
+# 是否显示下载链接
+show_download_link = false
+
+
