@@ -20,6 +20,7 @@ from src.plugin_system import (
 from src.plugin_system.base.config_types import ConfigField
 from src.common.logger import get_logger
 from src.chat.message_receive.chat_stream import ChatStream
+from .bilibili_random_video_action import BilibiliRandomVideoAction
 
 logger = get_logger("music")
 
@@ -76,7 +77,8 @@ class MusicSearchAction(BaseAction):
     action_parameters = {
         "song_name": "要搜索的歌曲名称",
         "quality": "音质要求(1-9，可选)",
-        "direct_url": "是否直接发送直链（布尔，true为直链，false为先尝试卡片,默认为false）"
+        "direct_url": "是否直接发送直链（布尔，true为直链，false为先尝试卡片,默认为false）",
+        "choose": "选择发送该搜索词结果的第几个（整数，1为第一个，2为第二个，依此类推，默认为1）"
     }
     action_require = [
         "仅当用户明确表达想要听音乐、点歌、或询问音乐相关信息时才调用本动作。",
@@ -90,8 +92,20 @@ class MusicSearchAction(BaseAction):
 
     async def _fetch_music_info_with_retry(self, song_name, quality, api_url):
         import asyncio
-        choose = random.randint(1, 10)
-        tries = [choose, max(1, choose // 2), 1]
+        choose_input = self.action_data.get("choose", None)
+        try:
+            choose_input = int(choose_input)
+            if choose_input < 1:
+                choose_input = 1
+        except Exception:
+            choose_input = None
+        if choose_input:
+            tries = [choose_input, 1, 2, 3]
+            # 去重且保持顺序
+            seen = set()
+            tries = [x for x in tries if not (x in seen or seen.add(x))]
+        else:
+            tries = [1, 2, 3]
         for idx, c in enumerate(tries):
             await asyncio.sleep(3) if idx > 0 else None
             async with aiohttp.ClientSession() as session:
@@ -105,7 +119,7 @@ class MusicSearchAction(BaseAction):
                         data = await response.json()
                         if data.get("code") == 200:
                             return True, data.get("data", {}), c
-            # 只要不是成功就继续下一次
+        # 只要不是成功就继续下一次
         return False, None, tries[-1]
 
     def _get_target_info(self, chat_stream):
@@ -167,19 +181,28 @@ class MusicSearchAction(BaseAction):
         try:
             group_info = getattr(chat_stream, "group_info", None) if chat_stream else None
             group_id = getattr(group_info, "group_id", None)
+            user_id = getattr(chat_stream.user_info, "user_id", None) if chat_stream else None
             music_id = (
                 music_info.get("id") or
                 music_info.get("songid") or
                 music_info.get("songId")
             )
+            from .napcat_client import NapcatClient
+            client = NapcatClient()
+            resp = None
             if group_id is not None and music_id:
-                from .napcat_client import NapcatClient
                 try:
                     group_id_int = int(group_id)
                 except Exception:
                     group_id_int = group_id
-                client = NapcatClient()
                 resp = client.send_group_music_card(group_id=group_id_int, music_type="163", music_id=str(music_id))
+            elif user_id is not None and music_id:
+                try:
+                    user_id_int = int(user_id)
+                except Exception:
+                    user_id_int = user_id
+                resp = client.send_private_music_card(user_id=user_id_int, music_type="163", music_id=str(music_id))
+            if resp:
                 logger.info(f"Napcat音乐卡片发送响应: {resp}")
                 import json
                 try:
@@ -225,8 +248,7 @@ class MusicCommand(BaseCommand):
 
     async def _fetch_music_info_with_retry(self, song_name, quality, api_url):
         import asyncio
-        choose = random.randint(1, 10)
-        tries = [choose, max(1, choose // 2), 1]
+        tries = [1, 2, 3]  # 依次尝试1、2、3
         for idx, c in enumerate(tries):
             await asyncio.sleep(3) if idx > 0 else None
             async with aiohttp.ClientSession() as session:
@@ -240,7 +262,7 @@ class MusicCommand(BaseCommand):
                         data = await response.json()
                         if data.get("code") == 200:
                             return True, data.get("data", {}), c
-            # 只要不是成功就继续下一次
+        # 只要不是成功就继续下一次
         return False, None, tries[-1]
 
     async def execute(self) -> Tuple[bool, str]:
@@ -347,14 +369,23 @@ class MusicCommand(BaseCommand):
             from .napcat_client import NapcatClient
             group_info = getattr(chat_stream, "group_info", None) if chat_stream else None
             group_id = getattr(group_info, "group_id", None)
+            user_id = getattr(chat_stream.user_info, "user_id", None) if chat_stream else None
             music_id = music_info.get("id") or music_info.get("songid") or music_info.get("songId")
+            client = NapcatClient()
+            resp = None
             if group_id is not None and music_id:
                 try:
                     group_id_int = int(group_id)
                 except Exception:
                     group_id_int = group_id
-                client = NapcatClient()
                 resp = client.send_group_music_card(group_id=group_id_int, music_type="163", music_id=str(music_id))
+            elif user_id is not None and music_id:
+                try:
+                    user_id_int = int(user_id)
+                except Exception:
+                    user_id_int = user_id
+                resp = client.send_private_music_card(user_id=user_id_int, music_type="163", music_id=str(music_id))
+            if resp:
                 logger.info(f"Napcat音乐卡片发送响应: {resp}")
                 try:
                     resp_json = json.loads(resp)
@@ -519,4 +550,5 @@ class MusicPlugin(BasePlugin):
             (MusicSearchAction.get_action_info(), MusicSearchAction),
             (MusicCommand.get_command_info(), MusicCommand),
             (TestNapcatMusicCardCommand.get_command_info(), TestNapcatMusicCardCommand),
+            (BilibiliRandomVideoAction.get_action_info()[0], BilibiliRandomVideoAction),
         ]

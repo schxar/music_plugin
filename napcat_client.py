@@ -32,3 +32,30 @@ class NapcatClient:
         res = conn.getresponse()
         data = res.read()
         return data.decode("utf-8")
+
+    def send_private_music_card(self, user_id: int, music_type: str, music_id: str):
+        """
+        发送音乐小程序卡片到指定私聊。
+        :param user_id: 用户ID
+        :param music_type: 音乐平台类型（如 '163'）
+        :param music_id: 音乐ID
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "user_id": user_id,
+            "message": [
+                {
+                    "type": "music",
+                    "data": {
+                        "type": music_type,
+                        "id": music_id
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_private_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        return data.decode("utf-8")
