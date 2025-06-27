@@ -3,6 +3,8 @@ import aiohttp
 import json
 import random
 import re
+
+import asyncio
 from src.plugin_system.base.base_plugin import BasePlugin, register_plugin
 from src.plugin_system.base.base_action import BaseAction, ActionActivationType, ChatMode
 from src.plugin_system.base.base_command import BaseCommand
