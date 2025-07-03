@@ -458,8 +458,24 @@ class SingAction(BaseAction):
             return False, "未输入歌曲名"
         choose = "1"
         quality = "1"
-        changed_file = f"{song_name}_changed.wav"
-        # 先查 MSST-WebUI-zluda/results 目录
+        # 先请求网易云API获取实际歌名
+        api_url = self.get_config("api.base_url", "https://api.vkeys.cn")
+        real_song_name = song_name
+        try:
+            async with aiohttp.ClientSession() as session:
+                params = {
+                    "word": song_name,
+                    "quality": quality,
+                    "choose": choose
+                }
+                async with session.get(f"{api_url}/v2/music/netease", params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get("code") == 200 and data.get("data", {}).get("song"):
+                            real_song_name = data["data"]["song"]
+        except Exception as e:
+            pass  # 搜索失败就用原始song_name
+        changed_file = f"{real_song_name}_changed.wav"
         msst_result_dir = os.path.join(os.path.dirname(__file__), "MSST-WebUI-zluda", "results")
         msst_file_path = os.path.join(msst_result_dir, changed_file)
         file_path = None
@@ -478,13 +494,12 @@ class SingAction(BaseAction):
                 napcat = NapcatClient()
                 if group_id:
                     resp = napcat.send_group_record(int(group_id), file_path)
-                    # 使用 generator_api 生成润色回复
                     from src.plugin_system.apis import generator_api
                     chat_stream = getattr(self, "chat_stream", None)
                     result_status, result_message = await generator_api.rewrite_reply(
                         chat_stream=chat_stream,
                         reply_data={
-                            "raw_reply": f"唱歌已发送: {song_name}",
+                            "raw_reply": f"唱歌已发送: {real_song_name}",
                             "reason": "用户要求唱歌，你已经发送了语音",
                         }
                     )
@@ -496,13 +511,12 @@ class SingAction(BaseAction):
                         await self.send_text(f"已发送")
                 elif user_id:
                     resp = napcat.send_private_record(int(user_id), file_path)
-                    # 使用 generator_api 生成润色回复
                     from src.plugin_system.apis import generator_api
                     chat_stream = getattr(self, "chat_stream", None)
                     result_status, result_message = await generator_api.rewrite_reply(
                         chat_stream=chat_stream,
                         reply_data={
-                            "raw_reply": f"唱歌已发送: {song_name}",
+                            "raw_reply": f"唱歌已发送: {real_song_name}",
                             "reason": "用户要求唱歌，你已经发送了语音",
                         }
                     )
@@ -529,7 +543,6 @@ class SingAction(BaseAction):
             await self.send_text("收到")
             return True, "收到"
         except Exception as e:
-            #await self.send_text(f"处理失败: {e}")
             return False, f"处理失败: {e}"
 
 class TestNapcatMusicCardCommand(BaseCommand):
