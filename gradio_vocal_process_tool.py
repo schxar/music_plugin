@@ -14,6 +14,11 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     """
     if not os.path.exists(input_wav):
         raise FileNotFoundError(f"输入wav不存在: {input_wav}")
+    # 优先检查是否已存在处理结果
+    base_name = os.path.splitext(os.path.basename(input_wav))[0]
+    changed_path = os.path.join(os.path.dirname(input_wav), f"{base_name}_changed.wav")
+    if os.path.exists(changed_path):
+        return changed_path
     driver = webdriver.Chrome()
     driver.get(gradio_url)
     wait = WebDriverWait(driver, 20)
@@ -72,18 +77,14 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     from selenium.common.exceptions import TimeoutException
     audio_src = None
     try:
-        # 优先用原选择器，找不到则尝试更通用的audio标签
-        try:
-            audio_elem = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "audio.svelte-eemfgq"))
-            )
-        except TimeoutException:
-            print("[调试] 未找到 audio.svelte-eemfgq，尝试查找任意audio标签……")
-            audio_elem = wait.until(
-                EC.presence_of_element_located((By.TAG_NAME, "audio"))
-            )
+        # 优先查找所有audio标签，找src属性包含_vocals_qingxu_ 或 _sovdiff_ 的wav
         for _ in range(60):
-            audio_src = audio_elem.get_attribute("src")
+            audio_elems = driver.find_elements(By.TAG_NAME, "audio")
+            for audio_elem in audio_elems:
+                src = audio_elem.get_attribute("src")
+                if src and ("_vocals_qingxu_" in src or src.endswith(".wav") or "_sovdiff_" in src):
+                    audio_src = src
+                    break
             if audio_src:
                 break
             time.sleep(1)
@@ -120,11 +121,27 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     output_path = os.path.join(os.path.dirname(input_wav), 'gradio_output.wav')
     import requests
     try:
-        with requests.get(audio_src, stream=True) as r:
-            r.raise_for_status()
-            with open(output_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        # 如果src是file=本地路径，直接复制本地文件
+        if audio_src.startswith("http://") and "file=" in audio_src:
+            import urllib.parse
+            local_path = audio_src.split("file=")[-1]
+            local_path = urllib.parse.unquote(local_path)
+            if os.path.exists(local_path):
+                import shutil
+                shutil.copy(local_path, output_path)
+            else:
+                # 兜底用requests下载
+                with requests.get(audio_src, stream=True) as r:
+                    r.raise_for_status()
+                    with open(output_path, 'wb') as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+        else:
+            with requests.get(audio_src, stream=True) as r:
+                r.raise_for_status()
+                with open(output_path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
     except Exception as e:
         print(f"[错误] 下载音频失败: {e}")
         # 退出前再次尝试卸载模型

@@ -16,6 +16,13 @@ async def download_netease_flac(song_name: str, choose: str, quality: str, api_u
     :param api_url: API地址 
     :return: 下载完成的flac文件路径
     """
+    import re
+    cache_dir = get_cache_dir()
+    # 先用歌名生成安全文件名，检查是否已存在
+    safe_song_name = re.sub(r'[\\/:*?"<>|]', '_', song_name)
+    flac_path = os.path.join(cache_dir, f"{safe_song_name}.flac")
+    if os.path.exists(flac_path):
+        return flac_path
     async with aiohttp.ClientSession() as session:
         params = {
             "word": song_name,
@@ -29,10 +36,10 @@ async def download_netease_flac(song_name: str, choose: str, quality: str, api_u
                     url = data["data"]["url"]
                     real_song_name = data["data"].get("song", song_name)
                     # 清理非法文件名字符
-                    import re
                     safe_song_name = re.sub(r'[\\/:*?"<>|]', '_', real_song_name)
-                    cache_dir = get_cache_dir()
                     flac_path = os.path.join(cache_dir, f"{safe_song_name}.flac")
+                    if os.path.exists(flac_path):
+                        return flac_path
                     # 下载文件
                     with requests.get(url, stream=True) as r:
                         r.raise_for_status()

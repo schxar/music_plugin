@@ -21,6 +21,7 @@ from src.plugin_system.base.config_types import ConfigField
 from src.common.logger import get_logger
 from src.chat.message_receive.chat_stream import ChatStream
 from .bilibili_random_video_action import BilibiliRandomVideoAction
+#from .gradio_load_model_action import SingAction  # 导入SOVITS翻唱Action
 
 logger = get_logger("music")
 
@@ -431,6 +432,106 @@ class MusicCommand(BaseCommand):
 
 # ===== 插件注册 =====
 
+class SingAction(BaseAction):
+    """调用SOVITS处理网易云音乐下载的FLAC实现AI翻唱"""
+    action_name = "sing"
+    action_description = "调用SOVITS处理网易云音乐下载的FLAC实现AI翻唱"
+    action_parameters = {
+        "song_name": "必填，歌曲名"
+    }
+    action_require = [
+        "当用户需要你唱歌时调用。song_name为必填。"
+    ]
+    focus_activation_type = ActionActivationType.ALWAYS
+    normal_activation_type = ActionActivationType.ALWAYS
+    activation_keywords = ["唱歌", "AI翻唱", "帮我唱", "唱一首", "AI唱歌"]
+    keyword_case_sensitive = False
+    mode_enable = ChatMode.ALL
+    parallel_action = True
+
+    async def execute(self) -> Tuple[bool, str]:
+        import aiohttp
+        import os
+        song_name = self.action_data.get("song_name", "").strip()
+        if not song_name or song_name == "必填，歌曲名":
+            await self.send_text("未输入歌曲名")
+            return False, "未输入歌曲名"
+        choose = "1"
+        quality = "1"
+        changed_file = f"{song_name}_changed.wav"
+        # 先查 MSST-WebUI-zluda/results 目录
+        msst_result_dir = os.path.join(os.path.dirname(__file__), "MSST-WebUI-zluda", "results")
+        msst_file_path = os.path.join(msst_result_dir, changed_file)
+        file_path = None
+        if os.path.isfile(msst_file_path):
+            file_path = msst_file_path
+        elif os.path.isfile(changed_file):
+            file_path = changed_file
+        sent = False
+        # 检查本地是否已存在
+        if file_path and os.path.isfile(file_path):
+            chat_stream = getattr(self, "chat_stream", None)
+            group_id = getattr(getattr(chat_stream, "group_info", None), "group_id", None) if chat_stream else None
+            user_id = getattr(getattr(chat_stream, "user_info", None), "user_id", None) if chat_stream else None
+            try:
+                from .napcat_client import NapcatClient
+                napcat = NapcatClient()
+                if group_id:
+                    resp = napcat.send_group_record(int(group_id), file_path)
+                    # 使用 generator_api 生成润色回复
+                    from src.plugin_system.apis import generator_api
+                    chat_stream = getattr(self, "chat_stream", None)
+                    result_status, result_message = await generator_api.rewrite_reply(
+                        chat_stream=chat_stream,
+                        reply_data={
+                            "raw_reply": f"唱歌已发送: {song_name}",
+                            "reason": "用户要求唱歌，你已经发送了语音",
+                        }
+                    )
+                    if result_status and result_message:
+                        for reply_seg in result_message:
+                            data = reply_seg[1]
+                            await self.send_text(data)
+                    else:
+                        await self.send_text(f"已发送")
+                elif user_id:
+                    resp = napcat.send_private_record(int(user_id), file_path)
+                    # 使用 generator_api 生成润色回复
+                    from src.plugin_system.apis import generator_api
+                    chat_stream = getattr(self, "chat_stream", None)
+                    result_status, result_message = await generator_api.rewrite_reply(
+                        chat_stream=chat_stream,
+                        reply_data={
+                            "raw_reply": f"唱歌已发送: {song_name}",
+                            "reason": "用户要求唱歌，你已经发送了语音",
+                        }
+                    )
+                    if result_status and result_message:
+                        for reply_seg in result_message:
+                            data = reply_seg[1]
+                            await self.send_text(data)
+                    else:
+                        await self.send_text(f"已发送")
+                sent = True
+            except Exception as e:
+                await self.send_text(f"Napcat语音发送失败: {e}")
+        if sent:
+            return True, f"本地已存在并已发送: {file_path}"
+        # 本地没有则请求生成
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    "song": song_name,
+                    "choose": choose,
+                    "quality": quality
+                }
+                await session.post("http://127.0.0.1:5211", data=payload)
+            await self.send_text("收到")
+            return True, "收到"
+        except Exception as e:
+            #await self.send_text(f"处理失败: {e}")
+            return False, f"处理失败: {e}"
+
 class TestNapcatMusicCardCommand(BaseCommand):
     """测试Napcat音乐卡片发送Command"""
     command_pattern = r"^/test_napcat_card(?:\s+(?P<id>\d+))?(?:\s+(?P<type>\d+))?$"
@@ -438,13 +539,12 @@ class TestNapcatMusicCardCommand(BaseCommand):
     command_examples = ["/test_napcat_card", "/test_napcat_card 1867921493", "/test_napcat_card 1867921493 163"]
     intercept_message = True
 
-    async def _send_napcat_music_card(self, group_id: str, music_type: str = "163", music_id: str = "1867921493") -> str:
+    async def _send_napcat_music_card(self, group_id: str, music_type: str = "163", music_id: str = "1867921493", user_id: str = None) -> str:
         import requests, json
         import asyncio
         loop = asyncio.get_event_loop()
         url = "http://127.0.0.1:4998/send_group_msg"
-        payload = json.dumps({
-            "group_id": group_id,
+        payload_dict = {
             "message": [
                 {
                     "type": "music",
@@ -454,7 +554,13 @@ class TestNapcatMusicCardCommand(BaseCommand):
                     }
                 }
             ]
-        })
+        }
+        # 同时加上 group_id 和 user_id 字段
+        if group_id is not None:
+            payload_dict["group_id"] = group_id
+        if user_id is not None:
+            payload_dict["user_id"] = user_id
+        payload = json.dumps(payload_dict)
         headers = {'Content-Type': 'application/json'}
         def sync_post():
             return requests.post(url, headers=headers, data=payload).text
@@ -464,27 +570,35 @@ class TestNapcatMusicCardCommand(BaseCommand):
     async def execute(self) -> tuple:
         chat_stream = getattr(self, "chat_stream", None)
         group_id = None
-        if chat_stream and getattr(chat_stream, "group_info", None):
-            group_id = str(chat_stream.group_info.group_id)
-        else:
+        user_id = None
+        if chat_stream:
+            if getattr(chat_stream, "group_info", None):
+                group_id = str(chat_stream.group_info.group_id)
+            if getattr(chat_stream, "user_info", None):
+                user_id = str(chat_stream.user_info.user_id)
+        if not group_id and not user_id:
             group_id = "260503685"  # 默认群号
         music_id = (self.matched_groups or {}).get("id") or "1867921493"
         music_type = (self.matched_groups or {}).get("type") or "163"
         try:
-            resp = await self._send_napcat_music_card(group_id, music_type, music_id)
+            resp = await self._send_napcat_music_card(group_id, music_type, music_id, user_id)
+            target_id = group_id if group_id else user_id
+            is_group = bool(group_id)
             await send_api.custom_message(
                 message_type="text",
                 content=f"Napcat响应: {resp}",
-                target_id=group_id,
-                is_group=True
+                target_id=target_id,
+                is_group=is_group
             )
             return True, f"Napcat响应: {resp}"
         except Exception as e:
+            target_id = group_id if group_id else user_id
+            is_group = bool(group_id)
             await send_api.custom_message(
                 message_type="text",
                 content=f"Napcat测试失败: {e}",
-                target_id=group_id,
-                is_group=True
+                target_id=target_id,
+                is_group=is_group
             )
             return False, f"Napcat测试失败: {e}"
 
@@ -543,12 +657,14 @@ class MusicPlugin(BasePlugin):
             )
         }
     }
+    
 
     def get_plugin_components(self) -> List[Tuple[ComponentInfo, Type]]:
         """返回插件组件列表"""
         return [
             (MusicSearchAction.get_action_info(), MusicSearchAction),
-            (MusicCommand.get_command_info(), MusicCommand),
-            (TestNapcatMusicCardCommand.get_command_info(), TestNapcatMusicCardCommand),
-            (BilibiliRandomVideoAction.get_action_info()[0], BilibiliRandomVideoAction),
+            #(MusicCommand.get_command_info(), MusicCommand),
+            #(TestNapcatMusicCardCommand.get_command_info(), TestNapcatMusicCardCommand),
+            #(BilibiliRandomVideoAction.get_action_info(), BilibiliRandomVideoAction),
+            (SingAction.get_action_info(), SingAction),
         ]

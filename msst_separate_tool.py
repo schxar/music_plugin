@@ -18,29 +18,35 @@ def msst_separate(flac_path: str, results_dir: str = None, webui_url: str = "htt
     base_dir = os.path.dirname(os.path.abspath(__file__))
     if results_dir is None:
         results_dir = os.path.join(base_dir, 'MSST-WebUI-zluda', 'results')
+    base_name = os.path.splitext(os.path.basename(flac_path))[0]
+    other_path = os.path.join(results_dir, f'{base_name}_other.wav')
+    vocals_path = os.path.join(results_dir, f'{base_name}_vocals.wav')
+    # 如果分离结果已存在，直接返回
+    if os.path.exists(other_path) and os.path.exists(vocals_path):
+        return other_path, vocals_path
     # 启动浏览器
     driver = webdriver.Chrome()
     driver.get(webui_url)
     wait = WebDriverWait(driver, 20)
 
-    # 1. 勾选显卡
-    gpu_checkbox = wait.until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@type='checkbox' and @name='0: NVIDIA GeForce RTX 4060 Laptop GPU']"))
-    )
-    gpu_checkbox.click()
-    time.sleep(1)
-    # 2. 勾选vocals
-    vocals_checkbox = wait.until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@type='checkbox' and @name='vocals']"))
-    )
-    vocals_checkbox.click()
-    time.sleep(1)
-    # 3. 勾选other
-    other_checkbox = wait.until(
-        EC.element_to_be_clickable((By.XPATH, "//input[@type='checkbox' and @name='other']"))
-    )
-    other_checkbox.click()
-    time.sleep(1)
+    # # 1. 勾选显卡
+    # gpu_checkbox = wait.until(
+    #     EC.element_to_be_clickable((By.XPATH, "//input[@type='checkbox' and @name='0: NVIDIA GeForce RTX 4060 Laptop GPU']"))
+    # )
+    # gpu_checkbox.click()
+    # time.sleep(1)
+    # # 2. 勾选vocals
+    # vocals_checkbox = wait.until(
+    #     EC.element_to_be_clickable((By.XPATH, "//input[@type='checkbox' and @name='vocals']"))
+    # )
+    # vocals_checkbox.click()
+    # time.sleep(1)
+    # # 3. 勾选other
+    # other_checkbox = wait.until(
+    #     EC.element_to_be_clickable((By.XPATH, "//input[@type='checkbox' and @name='other']"))
+    # )
+    # other_checkbox.click()
+    # time.sleep(1)
     # 4. 上传flac
     file_input = wait.until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file'][data-testid='file-upload']"))
@@ -53,9 +59,6 @@ def msst_separate(flac_path: str, results_dir: str = None, webui_url: str = "htt
     )
     split_btn.click()
     # 6. 检测 Output Message 文本框内容，判断分离是否完成
-    base_name = os.path.splitext(os.path.basename(flac_path))[0]
-    other_path = os.path.join(results_dir, f'{base_name}_other.wav')
-    vocals_path = os.path.join(results_dir, f'{base_name}_vocals.wav')
     timeout = 300  # 最长等待5分钟
     interval = 4   # 每4秒检查一次
     waited = 0
