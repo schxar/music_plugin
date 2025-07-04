@@ -60,8 +60,8 @@ else:
     print("已点击‘输入音频分离’按钮，等待分离结果...")
 
     # 6. 等待 results 目录下出现新的 test_other.wav 和 test_vocals.wav
-    import pathlib
-    results_dir = r'D:\MSST-WebUI-zluda\results'
+    from msst_separate_tool import find_results_dir
+    results_dir = find_results_dir()
     other_path = os.path.join(results_dir, 'test_other.wav')
     vocals_path = os.path.join(results_dir, 'test_vocals.wav')
     timeout = 180  # 最长等待2分钟

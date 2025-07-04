@@ -1,7 +1,7 @@
 import asyncio
 import os
 from netease_download_tool import download_netease_flac
-from msst_separate_tool import msst_separate
+from msst_separate_tool import msst_separate, find_results_dir
 from gradio_vocal_process_tool import gradio_process_vocal
 from audio_merge_tool import merge_vocal_and_other
 
@@ -12,7 +12,7 @@ def main(song_name: str, choose: str, quality: str):
     flac_path = loop.run_until_complete(download_netease_flac(song_name, choose, quality))
     print(f"FLAC下载完成: {flac_path}")
     # 2. 分离得到vocals/other
-    other_wav, vocals_wav = msst_separate(flac_path, results_dir=r'D:\MSST-WebUI-zluda\results')
+    other_wav, vocals_wav = msst_separate(flac_path, results_dir=find_results_dir())
     print(f"分离完成:\nother: {other_wav}\nvocals: {vocals_wav}")
     # 修复vocals_wav文件名不精确问题，自动模糊查找
     import glob

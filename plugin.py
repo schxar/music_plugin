@@ -479,7 +479,8 @@ class SingAction(BaseAction):
         import re
         safe_real_song_name = re.sub(r'[\\/:*?"<>|()（）\[\]{}]', '', real_song_name)
         changed_file = f"{safe_real_song_name}_changed.wav"
-        msst_result_dir = r'D:\MSST-WebUI-zluda\results'
+        from .msst_separate_tool import find_results_dir
+        msst_result_dir = find_results_dir()
         msst_file_path = os.path.join(msst_result_dir, changed_file)
         file_path = None
         if os.path.isfile(msst_file_path):

@@ -1,11 +1,28 @@
 import os
 import time
+from typing import Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-def msst_separate(flac_path: str, results_dir: str = None, webui_url: str = "http://127.0.0.1:7861"):
+def find_results_dir():
+    """
+    从当前目录开始，递归向上查找 MSST-WebUI-zluda/results 文件夹。
+    找到后返回其绝对路径，否则抛出异常。
+    """
+    cur = os.path.abspath(os.getcwd())
+    while True:
+        candidate = os.path.join(cur, 'MSST-WebUI-zluda', 'results')
+        if os.path.isdir(candidate):
+            return candidate
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cur = parent
+    raise FileNotFoundError("未找到 MSST-WebUI-zluda/results 目录，请检查目录结构！")
+
+def msst_separate(flac_path: str, results_dir: Optional[str] = None, webui_url: str = "http://127.0.0.1:7861"):
     """
     使用MSST-WebUI自动分离flac音频，返回分离后other和vocals的wav路径。
     :param flac_path: 输入的flac文件路径
@@ -16,7 +33,7 @@ def msst_separate(flac_path: str, results_dir: str = None, webui_url: str = "htt
     if not os.path.exists(flac_path):
         raise FileNotFoundError(f"音频文件不存在: {flac_path}")
     if results_dir is None:
-        results_dir = r'D:\MSST-WebUI-zluda\results'
+        results_dir = find_results_dir()
     base_name = os.path.splitext(os.path.basename(flac_path))[0]
     other_path = os.path.join(results_dir, f'{base_name}_other.wav')
     vocals_path = os.path.join(results_dir, f'{base_name}_vocals.wav')
