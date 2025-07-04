@@ -61,7 +61,7 @@ else:
 
     # 6. 等待 results 目录下出现新的 test_other.wav 和 test_vocals.wav
     import pathlib
-    results_dir = os.path.join(os.path.dirname(__file__), 'MSST-WebUI-zluda', 'results')
+    results_dir = r'D:\MSST-WebUI-zluda\results'
     other_path = os.path.join(results_dir, 'test_other.wav')
     vocals_path = os.path.join(results_dir, 'test_vocals.wav')
     timeout = 180  # 最长等待2分钟

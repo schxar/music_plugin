@@ -18,8 +18,8 @@ async def download_netease_flac(song_name: str, choose: str, quality: str, api_u
     """
     import re
     cache_dir = get_cache_dir()
-    # 先用歌名生成安全文件名，检查是否已存在
-    safe_song_name = re.sub(r'[\\/:*?"<>|]', '_', song_name)
+    # 与 plugin.py 保持一致，去除括号及特殊符号
+    safe_song_name = re.sub(r'[\\/:*?"<>|()（）\[\]{}]', '', song_name)
     flac_path = os.path.join(cache_dir, f"{safe_song_name}.flac")
     if os.path.exists(flac_path):
         return flac_path
@@ -35,8 +35,8 @@ async def download_netease_flac(song_name: str, choose: str, quality: str, api_u
                 if data.get("code") == 200 and data.get("data", {}).get("url"):
                     url = data["data"]["url"]
                     real_song_name = data["data"].get("song", song_name)
-                    # 清理非法文件名字符
-                    safe_song_name = re.sub(r'[\\/:*?"<>|]', '_', real_song_name)
+                    # 与 plugin.py 保持一致，去除括号及特殊符号
+                    safe_song_name = re.sub(r'[\\/:*?"<>|()（）\[\]{}]', '', real_song_name)
                     flac_path = os.path.join(cache_dir, f"{safe_song_name}.flac")
                     if os.path.exists(flac_path):
                         return flac_path
