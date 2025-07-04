@@ -15,9 +15,8 @@ def msst_separate(flac_path: str, results_dir: str = None, webui_url: str = "htt
     """
     if not os.path.exists(flac_path):
         raise FileNotFoundError(f"音频文件不存在: {flac_path}")
-    base_dir = os.path.dirname(os.path.abspath(__file__))
     if results_dir is None:
-        results_dir = os.path.join(base_dir, 'MSST-WebUI-zluda', 'results')
+        results_dir = r'D:\MSST-WebUI-zluda\results'
     base_name = os.path.splitext(os.path.basename(flac_path))[0]
     other_path = os.path.join(results_dir, f'{base_name}_other.wav')
     vocals_path = os.path.join(results_dir, f'{base_name}_vocals.wav')

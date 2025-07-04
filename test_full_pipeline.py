@@ -12,7 +12,7 @@ def main(song_name: str, choose: str, quality: str):
     flac_path = loop.run_until_complete(download_netease_flac(song_name, choose, quality))
     print(f"FLAC下载完成: {flac_path}")
     # 2. 分离得到vocals/other
-    other_wav, vocals_wav = msst_separate(flac_path)
+    other_wav, vocals_wav = msst_separate(flac_path, results_dir=r'D:\MSST-WebUI-zluda\results')
     print(f"分离完成:\nother: {other_wav}\nvocals: {vocals_wav}")
     # 修复vocals_wav文件名不精确问题，自动模糊查找
     import glob

@@ -475,8 +475,11 @@ class SingAction(BaseAction):
                             real_song_name = data["data"]["song"]
         except Exception as e:
             pass  # 搜索失败就用原始song_name
-        changed_file = f"{real_song_name}_changed.wav"
-        msst_result_dir = os.path.join(os.path.dirname(__file__), "MSST-WebUI-zluda", "results")
+        # 处理real_song_name，去除括号及特殊符号，生成safe_real_song_name
+        import re
+        safe_real_song_name = re.sub(r'[\\/:*?"<>|()（）\[\]{}]', '', real_song_name)
+        changed_file = f"{safe_real_song_name}_changed.wav"
+        msst_result_dir = r'D:\MSST-WebUI-zluda\results'
         msst_file_path = os.path.join(msst_result_dir, changed_file)
         file_path = None
         if os.path.isfile(msst_file_path):
