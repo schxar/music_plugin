@@ -38,7 +38,7 @@ from src.plugin_system import (
 from src.plugin_system.base.config_types import ConfigField
 from src.common.logger import get_logger
 from src.chat.message_receive.chat_stream import ChatStream
-from .bilibili_random_video_action import BilibiliRandomVideoAction
+# from .bilibili_random_video_action import BilibiliRandomVideoAction  # 延迟导入，避免加载时报错
 #from .gradio_load_model_action import SingAction  # 导入SOVITS翻唱Action
 
 logger = get_logger("music")
@@ -663,19 +663,27 @@ class SingAction(BaseAction):
             return False, f"处理失败: {e}"
 
 @register_plugin
+@register_plugin
 class MusicPlugin(BasePlugin):
-    """音乐点歌插件"""
+    """音乐点歌插件
+    - 支持网易云音乐点歌、音乐搜索、AI翻唱等功能
+    - 支持组件启用控制
+    - 支持灵活扩展
+    """
 
-    plugin_name = "music_plugin"
-    plugin_description = "网易云音乐点歌插件，支持音乐搜索和点歌功能"
-    plugin_version = "1.0.0"
-    plugin_author = "靓仔"
-    enable_plugin = True
-    config_file_name = "config.toml"
+    plugin_name = "music_plugin"  # type: ignore
+    plugin_description = "网易云音乐点歌插件，支持音乐搜索和点歌功能"  # type: ignore
+    plugin_version = "1.0.0"  # type: ignore
+    plugin_author = "靓仔"  # type: ignore
+    enable_plugin = True  # type: ignore
+    config_file_name = "config.toml"  # type: ignore
+    dependencies = []  # type: ignore
+    python_dependencies = []  # type: ignore
 
     # 配置节描述
     config_section_descriptions = {
         "plugin": "插件基本配置",
+        "components": "组件启用控制",
         "api": "API接口配置", 
         "music": "音乐功能配置",
         "features": "功能开关配置"
@@ -685,6 +693,11 @@ class MusicPlugin(BasePlugin):
     config_schema = {
         "plugin": {
             "enabled": ConfigField(type=bool, default=True, description="是否启用插件")
+        },
+        "components": {
+            "enable_music_search": ConfigField(type=bool, default=True, description="是否启用音乐搜索功能"),
+            "enable_music_command": ConfigField(type=bool, default=False, description="是否启用点歌命令功能"),
+            "enable_sing_action": ConfigField(type=bool, default=True, description="是否启用AI翻唱/tts功能")
         },
         "api": {
             "base_url": ConfigField(
@@ -714,15 +727,19 @@ class MusicPlugin(BasePlugin):
                 description="是否显示下载链接"
             )
         }
-    }
-    
+    } # type: ignore
 
     def get_plugin_components(self) -> List[Tuple[ComponentInfo, Type]]:
-        """返回插件组件列表"""
-        return [
-            (MusicSearchAction.get_action_info(), MusicSearchAction),
-            #(MusicCommand.get_command_info(), MusicCommand),
-            #(TestNapcatMusicCardCommand.get_command_info(), TestNapcatMusicCardCommand),
-            #(BilibiliRandomVideoAction.get_action_info(), BilibiliRandomVideoAction),
-            (SingAction.get_action_info(), SingAction),
-        ]
+        """返回插件组件列表，支持按配置启用/禁用组件"""
+        components = []
+        if self.get_config("components.enable_music_search", True):
+            components.append((MusicSearchAction.get_action_info(), MusicSearchAction))
+        if self.get_config("components.enable_music_command", False):
+            try:
+                components.append((MusicCommand.get_command_info(), MusicCommand))
+            except Exception:
+                pass
+        if self.get_config("components.enable_sing_action", True):
+            components.append((SingAction.get_action_info(), SingAction))
+        # 已移除BilibiliRandomVideoAction相关逻辑
+        return components
