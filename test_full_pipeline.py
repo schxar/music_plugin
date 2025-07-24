@@ -43,8 +43,8 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
         song = sys.argv[1]
-        choose = sys.argv[2] if len(sys.argv) > 2 else input("请输入选择（例如：1）：").strip()
-        quality = sys.argv[3] if len(sys.argv) > 3 else input("请输入音质（例如：9）：").strip()
+        choose = sys.argv[2] if len(sys.argv) > 2 else "1"
+        quality = sys.argv[3] if len(sys.argv) > 3 else "1"
     else:
         song = input("请输入网易云歌曲名: ").strip()
         while not song:
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         choose = input("请输入选择（例如：1）：").strip()
         while not choose:
             choose = input("请输入选择（例如：1）：").strip()
-        quality = input("请输入音质（例如：9）：").strip()
+        quality = input("请输入音质（例如：1）：").strip()
         while not quality:
-            quality = input("请输入音质（例如：9）：").strip()
+            quality = input("请输入音质（例如：1）：").strip()
     main(song, choose, quality)

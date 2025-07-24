@@ -25,7 +25,13 @@ class NapcatClient:
         conn.request("POST", "/send_group_msg", payload, headers)
         res = conn.getresponse()
         data = res.read()
-        return data.decode("utf-8")
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
     def send_private_text(self, user_id: int, text: str):
         """
         发送文本消息到指定私聊。
@@ -49,7 +55,13 @@ class NapcatClient:
         conn.request("POST", "/send_private_msg", payload, headers)
         res = conn.getresponse()
         data = res.read()
-        return data.decode("utf-8")
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
     def __init__(self, host="127.0.0.1", port=4998):
         self.host = host
         self.port = port
@@ -79,7 +91,12 @@ class NapcatClient:
         conn.request("POST", "/send_group_msg", payload, headers)
         res = conn.getresponse()
         data = res.read()
-        return data.decode("utf-8")
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
 
     def send_group_record(self, group_id: int, file_path: str):
         """
@@ -104,7 +121,12 @@ class NapcatClient:
         conn.request("POST", "/send_group_msg", payload, headers)
         res = conn.getresponse()
         data = res.read()
-        return data.decode("utf-8")
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
 
     def send_private_music_card(self, user_id: int, music_type: str, music_id: str):
         """
@@ -131,7 +153,12 @@ class NapcatClient:
         conn.request("POST", "/send_private_msg", payload, headers)
         res = conn.getresponse()
         data = res.read()
-        return data.decode("utf-8")
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
 
     def send_private_record(self, user_id: int, file_path: str):
         """
@@ -156,4 +183,9 @@ class NapcatClient:
         conn.request("POST", "/send_private_msg", payload, headers)
         res = conn.getresponse()
         data = res.read()
-        return data.decode("utf-8")
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
