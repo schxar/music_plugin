@@ -1,4 +1,214 @@
-from typing import List, Tuple, Type
+
+import http.client
+import json
+
+class NapcatClient:
+    def send_group_text(self, group_id: int, text: str):
+        """
+        发送文本消息到指定群聊。
+        :param group_id: 群号
+        :param text: 文本内容
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "group_id": group_id,
+            "message": [
+                {
+                    "type": "text",
+                    "data": {
+                        "text": text
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_group_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
+    def send_private_text(self, user_id: int, text: str):
+        """
+        发送文本消息到指定私聊。
+        :param user_id: 用户ID
+        :param text: 文本内容
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "user_id": user_id,
+            "message": [
+                {
+                    "type": "text",
+                    "data": {
+                        "text": text
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_private_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
+    def __init__(self, host="127.0.0.1", port=4998):
+        self.host = host
+        self.port = port
+
+    def send_group_music_card(self, group_id: int, music_type: str, music_id: str):
+        """
+        发送音乐小程序卡片到指定群聊。
+        :param group_id: 群号
+        :param music_type: 音乐平台类型（如 '163'）
+        :param music_id: 音乐ID
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "group_id": group_id,
+            "message": [
+                {
+                    "type": "music",
+                    "data": {
+                        "type": music_type,
+                        "id": music_id
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_group_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
+    def send_group_record(self, group_id: int, file_path: str):
+        """
+        发送语音消息到指定群聊。
+        :param group_id: 群号
+        :param file_path: 语音文件路径（本地或网络）
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "group_id": group_id,
+            "message": [
+                {
+                    "type": "record",
+                    "data": {
+                        "file": file_path
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_group_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
+    def send_private_music_card(self, user_id: int, music_type: str, music_id: str):
+        """
+        发送音乐小程序卡片到指定私聊。
+        :param user_id: 用户ID
+        :param music_type: 音乐平台类型（如 '163'）
+        :param music_id: 音乐ID
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "user_id": user_id,
+            "message": [
+                {
+                    "type": "music",
+                    "data": {
+                        "type": music_type,
+                        "id": music_id
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_private_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
+    def send_private_record(self, user_id: int, file_path: str):
+        """
+        发送语音消息到指定私聊。
+        :param user_id: 用户ID
+        :param file_path: 语音文件路径（本地或网络）
+        :return: Napcat响应内容
+        """
+        conn = http.client.HTTPConnection(self.host, self.port)
+        payload = json.dumps({
+            "user_id": user_id,
+            "message": [
+                {
+                    "type": "record",
+                    "data": {
+                        "file": file_path
+                    }
+                }
+            ]
+        })
+        headers = {'Content-Type': 'application/json'}
+        conn.request("POST", "/send_private_msg", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        try:
+            resp_json = json.loads(data.decode("utf-8"))
+            success = resp_json.get("status") == "ok" and resp_json.get("retcode") == 0
+            return success, resp_json
+        except Exception:
+            return False, None
+
+
+from typing import Any, Tuple, List, Type
+
+async def generate_rewrite_reply(chat_stream: Any, raw_reply: str, reason: str) -> Tuple[bool, Any]:
+    """
+    调用 generator_api.rewrite_reply 生成回复，供插件统一调用。
+    :param chat_stream: 聊天流对象
+    :param raw_reply: 原始回复文本
+    :param reason: 生成回复的理由
+    :return: (状态, 消息)
+    """
+    return await generator_api.rewrite_reply(
+        chat_stream=chat_stream,
+        reply_data={
+            "raw_reply": raw_reply,
+            "reason": reason,
+        }
+    )
 import aiohttp
 import json
 import random
@@ -206,7 +416,7 @@ class MusicSearchAction(BaseAction):
                 music_info.get("songid") or
                 music_info.get("songId")
             )
-            from .napcat_client import NapcatClient
+            # from .napcat_client import NapcatClient
             client = NapcatClient()
             resp = None
             if group_id is not None and music_id:
@@ -223,13 +433,12 @@ class MusicSearchAction(BaseAction):
                 resp = client.send_private_music_card(user_id=user_id_int, music_type="163", music_id=str(music_id))
             if resp:
                 logger.info(f"Napcat音乐卡片发送响应: {resp}")
-                import json
                 try:
-                    resp_json = json.loads(resp)
-                    if resp_json.get("status") == "ok" and resp_json.get("retcode") == 0:
+                    success, resp_json = resp
+                    if success and resp_json and resp_json.get("status") == "ok" and resp_json.get("retcode") == 0:
                         napcat_card_sent = True
                         # 发送成功后调用generator生成消息
-                        from .generator_tools import generate_rewrite_reply
+                        # from .generator_tools import generate_rewrite_reply
                         if chat_stream:
                             result_status, result_message = await generator_api.rewrite_reply(
                                 chat_stream=chat_stream,
@@ -331,7 +540,7 @@ class MusicCommand(BaseCommand):
             return False, f"点歌失败: {str(e)}"
 
     async def _send_detailed_music_info(self, music_info: dict):
-        from .generator_tools import generate_rewrite_reply
+        # from .generator_tools import generate_rewrite_reply
         if not isinstance(music_info, dict):
             return
         song = music_info.get("song", "未知歌曲")
@@ -385,7 +594,7 @@ class MusicCommand(BaseCommand):
         # ===== 新增：发送音乐小程序卡片到群聊（Napcat 4998） =====
         napcat_card_sent = False
         try:
-            from .napcat_client import NapcatClient
+        # from .napcat_client import NapcatClient
             group_info = getattr(chat_stream, "group_info", None) if chat_stream else None
             group_id = getattr(group_info, "group_id", None)
             user_id = getattr(chat_stream.user_info, "user_id", None) if chat_stream else None
@@ -487,7 +696,7 @@ class SingAction(BaseAction):
                 chat_stream = getattr(self, "chat_stream", None)
                 group_id = getattr(getattr(chat_stream, "group_info", None), "group_id", None) if chat_stream else None
                 user_id = getattr(getattr(chat_stream, "user_info", None), "user_id", None) if chat_stream else None
-                from .napcat_client import NapcatClient
+                # from .napcat_client import NapcatClient
                 napcat = NapcatClient()
                 sent = False
                 message_id = None
@@ -647,7 +856,7 @@ class SingAction(BaseAction):
                     "quality": quality
                 }
                 await session.post("http://127.0.0.1:5211", data=payload)
-            from .generator_tools import generate_rewrite_reply
+            # from .generator_tools import generate_rewrite_reply
             chat_stream = getattr(self, "chat_stream", None)
             result_status, result_message = await generate_rewrite_reply(
                 chat_stream, "收到,已经开始准备", "music_plugin 唤起AI翻唱准备提示润色"
