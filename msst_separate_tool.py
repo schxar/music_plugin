@@ -8,9 +8,22 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def find_results_dir():
     """
-    从当前目录开始，递归向上查找 MSST-WebUI-zluda/results 文件夹。
+    优先读取config.toml中的msst_result_dir配置，若无则递归查找 MSST-WebUI-zluda/results 文件夹。
     找到后返回其绝对路径，否则抛出异常。
     """
+    # 优先读取config.toml
+    import toml
+    config_path = os.path.join(os.path.dirname(__file__), 'config.toml')
+    msst_result_dir = None
+    if os.path.isfile(config_path):
+        try:
+            config = toml.load(config_path)
+            msst_result_dir = config.get('music', {}).get('msst_result_dir')
+            if msst_result_dir and os.path.isdir(msst_result_dir):
+                return msst_result_dir
+        except Exception:
+            pass
+    # 递归查找
     cur = os.path.abspath(os.getcwd())
     while True:
         candidate = os.path.join(cur, 'MSST-WebUI-zluda', 'results')
@@ -32,11 +45,13 @@ def msst_separate(flac_path: str, results_dir: Optional[str] = None, webui_url: 
     """
     if not os.path.exists(flac_path):
         raise FileNotFoundError(f"音频文件不存在: {flac_path}")
-    if results_dir is None:
+    if not results_dir:
         results_dir = find_results_dir()
+    if not results_dir:
+        raise FileNotFoundError("未找到MSST分离结果目录！")
     base_name = os.path.splitext(os.path.basename(flac_path))[0]
-    other_path = os.path.join(results_dir, f'{base_name}_other.wav')
-    vocals_path = os.path.join(results_dir, f'{base_name}_vocals.wav')
+    other_path = os.path.join(str(results_dir), f'{base_name}_other.wav')
+    vocals_path = os.path.join(str(results_dir), f'{base_name}_vocals.wav')
     # 如果分离结果已存在，直接返回
     if os.path.exists(other_path) and os.path.exists(vocals_path):
         return other_path, vocals_path

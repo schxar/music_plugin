@@ -1,6 +1,7 @@
 
 import http.client
 import json
+from .generator_tools import generate_rewrite_reply
 
 class NapcatClient:
     def send_group_text(self, group_id: int, text: str):
@@ -926,6 +927,11 @@ class MusicPlugin(BasePlugin):
                 type=int, 
                 default=10, 
                 description="最大搜索结果数"
+            ),
+            "msst_result_dir": ConfigField(
+                type=str,
+                default="D:/MSST-WebUI-zluda/results",
+                description="MSST分离结果目录（AI翻唱/tts语音文件查找目录）"
             )
         },
         "features": {
@@ -937,7 +943,6 @@ class MusicPlugin(BasePlugin):
             )
         }
     } # type: ignore
-
     def get_plugin_components(self) -> List[Tuple[ComponentInfo, Type]]:
         """返回插件组件列表，支持按配置启用/禁用组件"""
         components = []

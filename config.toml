@@ -27,6 +27,9 @@ default_quality = "9"
 # 最大搜索结果数
 max_search_results = 10
 
+# MSST分离结果目录（AI翻唱/tts语音文件查找目录）
+msst_result_dir = "D:/MSST-WebUI-zluda/results"
+
 
 # 功能开关配置
 [features]
