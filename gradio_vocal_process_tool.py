@@ -32,7 +32,7 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     options = driver.find_elements(By.CSS_SELECTOR, "ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
     for option in options:
         label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "G_43900.pth":
+        if label.strip() == "anon.pth":
             option.click()
             break
     time.sleep(1)
@@ -45,10 +45,27 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     diff_options = driver.find_elements(By.CSS_SELECTOR, "#component-15 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
     for option in diff_options:
         label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "model_30000.pt":
+        if label.strip() == "anon.pt":
             option.click()
             break
     time.sleep(2)
+    
+    
+    # 选择扩散模型配置文件 diffusion.yaml
+    config_span = wait.until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "#component-16 > label > div > div.wrap-inner.svelte-1ythexu > span"))
+    )
+    config_span.click()
+    time.sleep(1)
+    config_options = driver.find_elements(By.CSS_SELECTOR, "#component-16 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
+    for option in config_options:
+        label = option.get_attribute("aria-label") or option.text
+        if label.strip() == "diffusion.yaml":
+            option.click()
+            break
+    time.sleep(1)
+    
+    
     # 卸载模型
     unload_button = wait.until(
         EC.element_to_be_clickable((By.ID, "component-32"))
@@ -184,7 +201,7 @@ def gradio_process_vocal_tts(text: str, gradio_url: str = "http://127.0.0.1:7860
     options = driver.find_elements(By.CSS_SELECTOR, "ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
     for option in options:
         label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "G_43900.pth":
+        if label.strip() == "anon.pth":
             option.click()
             break
     time.sleep(1)
@@ -197,10 +214,23 @@ def gradio_process_vocal_tts(text: str, gradio_url: str = "http://127.0.0.1:7860
     diff_options = driver.find_elements(By.CSS_SELECTOR, "#component-15 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
     for option in diff_options:
         label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "model_30000.pt":
+        if label.strip() == "anon.pt":
             option.click()
             break
     time.sleep(2)
+    # 选择扩散模型配置文件 diffusion.yaml
+    config_span = wait.until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "#component-16 > label > div > div.wrap-inner.svelte-1ythexu > span"))
+    )
+    config_span.click()
+    time.sleep(1)
+    config_options = driver.find_elements(By.CSS_SELECTOR, "#component-16 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
+    for option in config_options:
+        label = option.get_attribute("aria-label") or option.text
+        if label.strip() == "diffusion.yaml":
+            option.click()
+            break
+    time.sleep(1)
     # 卸载模型
     unload_button = wait.until(
         EC.element_to_be_clickable((By.ID, "component-32"))
