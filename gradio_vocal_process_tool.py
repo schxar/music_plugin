@@ -22,7 +22,10 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     driver = webdriver.Chrome()
     driver.get(gradio_url)
     wait = WebDriverWait(driver, 20)
-
+    # 刷新选项
+    refresh_button = wait.until(EC.element_to_be_clickable((By.ID, "component-20")))
+    refresh_button.click()
+    time.sleep(1)
     # 选择模型
     model_select_span = wait.until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#component-6 > label > div > div.wrap-inner.svelte-1ythexu > span"))
@@ -32,38 +35,37 @@ def gradio_process_vocal(input_wav: str, gradio_url: str = "http://127.0.0.1:786
     options = driver.find_elements(By.CSS_SELECTOR, "ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
     for option in options:
         label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "anon.pth":
+        if label.strip() == "jo.pth":
             option.click()
             break
     time.sleep(1)
-    # 选择扩散模型
-    diffusion_span = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#component-15 > label > div > div.wrap-inner.svelte-1ythexu > span"))
-    )
-    diffusion_span.click()
-    time.sleep(1)
-    diff_options = driver.find_elements(By.CSS_SELECTOR, "#component-15 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
-    for option in diff_options:
-        label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "anon.pt":
-            option.click()
-            break
-    time.sleep(2)
-    
-    
-    # 选择扩散模型配置文件 diffusion.yaml
-    config_span = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#component-16 > label > div > div.wrap-inner.svelte-1ythexu > span"))
-    )
-    config_span.click()
-    time.sleep(1)
-    config_options = driver.find_elements(By.CSS_SELECTOR, "#component-16 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
-    for option in config_options:
-        label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "diffusion.yaml":
-            option.click()
-            break
-    time.sleep(1)
+    # # 选择扩散模型
+    # diffusion_span = wait.until(
+    #     EC.presence_of_element_located((By.CSS_SELECTOR, "#component-15 > label > div > div.wrap-inner.svelte-1ythexu > span"))
+    # )
+    # diffusion_span.click()
+    # time.sleep(1)
+    # diff_options = driver.find_elements(By.CSS_SELECTOR, "#component-15 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
+    # for option in diff_options:
+    #     label = option.get_attribute("aria-label") or option.text
+    #     if label.strip() == "anon.pt":
+    #         option.click()
+    #         break
+    # time.sleep(2)
+    #
+    # # 选择扩散模型配置文件 diffusion.yaml
+    # config_span = wait.until(
+    #     EC.presence_of_element_located((By.CSS_SELECTOR, "#component-16 > label > div > div.wrap-inner.svelte-1ythexu > span"))
+    # )
+    # config_span.click()
+    # time.sleep(1)
+    # config_options = driver.find_elements(By.CSS_SELECTOR, "#component-16 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
+    # for option in config_options:
+    #     label = option.get_attribute("aria-label") or option.text
+    #     if label.strip() == "diffusion.yaml":
+    #         option.click()
+    #         break
+    # time.sleep(1)
     
     
     # 卸载模型
@@ -191,7 +193,10 @@ def gradio_process_vocal_tts(text: str, gradio_url: str = "http://127.0.0.1:7860
     driver = webdriver.Chrome()
     driver.get(gradio_url)
     wait = WebDriverWait(driver, 20)
-
+    # 刷新选项
+    refresh_button = wait.until(EC.element_to_be_clickable((By.ID, "component-20")))
+    refresh_button.click()
+    time.sleep(1)
     # 选择模型
     model_select_span = wait.until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#component-6 > label > div > div.wrap-inner.svelte-1ythexu > span"))
@@ -201,36 +206,36 @@ def gradio_process_vocal_tts(text: str, gradio_url: str = "http://127.0.0.1:7860
     options = driver.find_elements(By.CSS_SELECTOR, "ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
     for option in options:
         label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "anon.pth":
+        if label.strip() == "jo.pth":
             option.click()
             break
     time.sleep(1)
-    # 选择扩散模型
-    diffusion_span = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#component-15 > label > div > div.wrap-inner.svelte-1ythexu > span"))
-    )
-    diffusion_span.click()
-    time.sleep(1)
-    diff_options = driver.find_elements(By.CSS_SELECTOR, "#component-15 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
-    for option in diff_options:
-        label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "anon.pt":
-            option.click()
-            break
-    time.sleep(2)
-    # 选择扩散模型配置文件 diffusion.yaml
-    config_span = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#component-16 > label > div > div.wrap-inner.svelte-1ythexu > span"))
-    )
-    config_span.click()
-    time.sleep(1)
-    config_options = driver.find_elements(By.CSS_SELECTOR, "#component-16 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
-    for option in config_options:
-        label = option.get_attribute("aria-label") or option.text
-        if label.strip() == "diffusion.yaml":
-            option.click()
-            break
-    time.sleep(1)
+    # # 选择扩散模型
+    # diffusion_span = wait.until(
+    #     EC.presence_of_element_located((By.CSS_SELECTOR, "#component-15 > label > div > div.wrap-inner.svelte-1ythexu > span"))
+    # )
+    # diffusion_span.click()
+    # time.sleep(1)
+    # diff_options = driver.find_elements(By.CSS_SELECTOR, "#component-15 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
+    # for option in diff_options:
+    #     label = option.get_attribute("aria-label") or option.text
+    #     if label.strip() == "anon.pt":
+    #         option.click()
+    #         break
+    # time.sleep(2)
+    # # 选择扩散模型配置文件 diffusion.yaml
+    # config_span = wait.until(
+    #     EC.presence_of_element_located((By.CSS_SELECTOR, "#component-16 > label > div > div.wrap-inner.svelte-1ythexu > span"))
+    # )
+    # config_span.click()
+    # time.sleep(1)
+    # config_options = driver.find_elements(By.CSS_SELECTOR, "#component-16 ul.options.svelte-1oas11n > li.item.svelte-1oas11n")
+    # for option in config_options:
+    #     label = option.get_attribute("aria-label") or option.text
+    #     if label.strip() == "diffusion.yaml":
+    #         option.click()
+    #         break
+    # time.sleep(1)
     # 卸载模型
     unload_button = wait.until(
         EC.element_to_be_clickable((By.ID, "component-32"))

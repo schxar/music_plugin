@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>TTS语音合成Demo</title>
+</head>
+<body>
+    <h2>文字转语音</h2>
+    <textarea id="tts_text" rows="4" cols="50" placeholder="请输入要合成的文本..."></textarea><br>
+    <button onclick="tts()">合成并播放</button>
+    <br><br>
+    <audio id="tts_audio" controls style="display:none;"></audio>
+    <script>
+    function tts() {
+        var text = document.getElementById('tts_text').value;
+        if (!text) { alert('请输入文本'); return; }
+        var formData = new FormData();
+        formData.append('text', text);
+        fetch('/tts', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('合成失败');
+            return response.blob();
+        })
+        .then(blob => {
+            var audio = document.getElementById('tts_audio');
+            audio.src = URL.createObjectURL(blob);
+            audio.style.display = '';
+            audio.play();
+        })
+        .catch(err => alert(err));
+    }
+    </script>
+</body>
+</html>

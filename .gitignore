@@ -183,3 +183,4 @@ cython_debug/
 /MSST-WebUI-zluda
 pyncm.exe
 music_plugin.zip
+*.wav

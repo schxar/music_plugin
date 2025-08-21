@@ -1,7 +1,9 @@
-from flask import Flask, request, render_template_string, jsonify
+from flask import Flask, request, render_template_string, jsonify, send_file
 from napcat_client import NapcatClient
+from gradio_vocal_process_tool import gradio_process_vocal_tts
 import threading
 from test_full_pipeline import main
+import os
 
 app = Flask(__name__)
 
@@ -27,6 +29,12 @@ HTML_FORM = '''
         <label>群号: <input type="text" name="group_id"></label><br><br>
         <label>QQ号: <input type="text" name="user_id"></label><br><br>
         <input type="submit" value="发送">
+    </form>
+    <hr>
+    <h2>TTS 语音合成</h2>
+    <form method="post" action="/tts">
+        <label>文本: <textarea name="text" rows="4" cols="50" required></textarea></label><br><br>
+        <input type="submit" value="合成语音">
     </form>
     {% if result %}
     <h3>处理结果</h3>
@@ -108,6 +116,61 @@ def index():
             t.join()
             result = result_list[0] if result_list else '无输出'
     return render_template_string(HTML_FORM, result=result)
+
+@app.route('/tts', methods=['POST'])
+def tts():
+    text = request.form.get('text') or (request.json and request.json.get('text'))
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
+    try:
+        audio_path = gradio_process_vocal_tts(text)
+        return send_file(audio_path, mimetype='audio/wav', as_attachment=True, download_name=os.path.basename(audio_path))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/tts_demo', methods=['GET'])
+def tts_demo():
+    html = '''
+    <!DOCTYPE html>
+    <html lang="zh-cn">
+    <head>
+        <meta charset="UTF-8">
+        <title>TTS语音合成Demo</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+        <h2>文字转语音</h2>
+        <textarea id="tts_text" rows="4" cols="50" placeholder="请输入要合成的文本..."></textarea><br>
+        <button onclick="tts()">合成并播放</button>
+        <br><br>
+        <audio id="tts_audio" controls style="display:none;"></audio>
+        <script>
+        function tts() {
+            var text = document.getElementById('tts_text').value;
+            if (!text) { alert('请输入文本'); return; }
+            var formData = new FormData();
+            formData.append('text', text);
+            fetch('/tts', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('合成失败');
+                return response.blob();
+            })
+            .then(blob => {
+                var audio = document.getElementById('tts_audio');
+                audio.src = URL.createObjectURL(blob);
+                audio.style.display = '';
+                audio.play();
+            })
+            .catch(err => alert(err));
+        }
+        </script>
+    </body>
+    </html>
+    '''
+    return html
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5211, debug=True)
