@@ -229,6 +229,7 @@ from src.common.logger import get_logger
 from PIL import Image
 from typing import Tuple, Dict, Optional, List, Any, Type
 from pathlib import Path
+from datetime import datetime, timedelta
 import traceback
 import tomlkit
 import json
@@ -672,6 +673,7 @@ class SingAction(BaseAction):
     action_require = [
         "当用户需要你唱歌时调用。song_name为必填。当有人让你说话时tts_mode为True,走TTS文本转语音。"
         "在你自己发言说 发了 之后,不需要再调用一次tts语音"
+        "可以经常调用tts说话"
     ]
     focus_activation_type = ActionActivationType.ALWAYS
     normal_activation_type = ActionActivationType.ALWAYS
@@ -691,6 +693,20 @@ class SingAction(BaseAction):
             await self.send_text("未输入歌曲名或文本")
             return False, "未输入歌曲名或文本"
         if tts_mode:
+            # 在生成新的TTS之前，清理旧的TTS文件
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            three_days_ago = datetime.now() - timedelta(days=3)
+            for filename in os.listdir(current_dir):
+                if filename.startswith('tts_') and filename.endswith('.wav'):
+                    file_path = os.path.join(current_dir, filename)
+                    creation_time = datetime.fromtimestamp(os.path.getctime(file_path))
+                    if creation_time < three_days_ago:
+                        try:
+                            os.remove(file_path)
+                            logger.info(f"已删除过期TTS文件: {filename}")
+                        except Exception as e:
+                            logger.warning(f"删除TTS文件 {filename} 时出错: {e}")
+            
             # TTS模式，调用新的API
             try:
                 import aiohttp
