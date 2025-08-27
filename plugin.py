@@ -1,4 +1,3 @@
-
 import http.client
 import json
 from .generator_tools import generate_rewrite_reply
@@ -660,6 +659,8 @@ class MusicCommand(BaseCommand):
 
 # ===== 插件注册 =====
 
+from .napcat_client import NapcatClient
+
 class SingAction(BaseAction):
     """调用SOVITS处理网易云音乐下载的FLAC实现AI翻唱或TTS文本转语音"""
     action_name = "sing"
@@ -681,7 +682,7 @@ class SingAction(BaseAction):
 
     async def execute(self) -> Tuple[bool, str]:
         import aiohttp
-        import os
+        import tempfile
         song_name = self.action_data.get("song_name", "").strip()
         tts_mode = self.action_data.get("tts_mode", False)
         if isinstance(tts_mode, str):
@@ -690,65 +691,82 @@ class SingAction(BaseAction):
             await self.send_text("未输入歌曲名或文本")
             return False, "未输入歌曲名或文本"
         if tts_mode:
-            # TTS模式，调用gradio_process_vocal_tts
+            # TTS模式，调用新的API
             try:
-                from .gradio_vocal_process_tool import gradio_process_vocal_tts
-                wav_path = gradio_process_vocal_tts(song_name)
-                chat_stream = getattr(self, "chat_stream", None)
-                group_id = getattr(getattr(chat_stream, "group_info", None), "group_id", None) if chat_stream else None
-                user_id = getattr(getattr(chat_stream, "user_info", None), "user_id", None) if chat_stream else None
-                # from .napcat_client import NapcatClient
-                napcat = NapcatClient()
-                sent = False
-                message_id = None
-                if group_id:
-                    success, resp_json = napcat.send_group_record(int(group_id), wav_path)
-                    if success:
-                        message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
-                        sent = True
-                    from src.plugin_system.apis import generator_api
-                    await self.send_text(f"发了")
-                    result_status, result_message = await generator_api.rewrite_reply(
-                        chat_stream=chat_stream,
-                        reply_data={
-                            "raw_reply": f"TTS语音已发送: {song_name}, 消息ID: {message_id if message_id else '未知'}",
-                            "reason": "tts_mode为True，已发送TTS语音",
-                        }
-                    )
-                    if result_status and result_message:
-                        for reply_seg in result_message:
-                            data = reply_seg[1]
-                            await self.send_text(data)
-                    else:
-                        await self.send_text(f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}")
-                elif user_id:
-                    success, resp_json = napcat.send_private_record(int(user_id), wav_path)
-                    if success:
-                        message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
-                        sent = True
-                    from src.plugin_system.apis import generator_api
-                    result_status, result_message = await generator_api.rewrite_reply(
-                        chat_stream=chat_stream,
-                        reply_data={
-                            "raw_reply": f"TTS语音已发送: {song_name}, 消息ID: {message_id if message_id else '未知'}",
-                            "reason": "tts_mode为True，已发送TTS语音",
-                        }
-                    )
-                    if result_status and result_message:
-                        for reply_seg in result_message:
-                            data = reply_seg[1]
-                            await self.send_text(data)
-                    else:
-                        await self.send_text(f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}")
-                if sent:
-                    return True, f"TTS语音已生成并发送: {wav_path}, 消息ID: {message_id if message_id else '未知'}"
-                else:
-                    await self.send_text("TTS语音生成成功，但发送失败")
-                    return False, "TTS语音生成成功，但发送失败"
+                import aiohttp
+                async with aiohttp.ClientSession() as session:
+                    payload = {'text': song_name}
+                    async with session.post('http://127.0.0.1:5211/tts', data=payload) as response:
+                        if response.status == 200:
+                            # Save the returned audio file to a temporary location
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_audio:
+                                temp_audio.write(await response.read())
+                                audio_path = temp_audio.name
+
+                            chat_stream = getattr(self, "chat_stream", None)
+                            group_id = getattr(getattr(chat_stream, "group_info", None), "group_id", None) if chat_stream else None
+                            user_id = getattr(getattr(chat_stream, "user_info", None), "user_id", None) if chat_stream else None
+                            from .napcat_client import NapcatClient
+                            napcat = NapcatClient()
+                            sent = False
+                            message_id = None
+                            if group_id:
+                                success, resp_json = napcat.send_group_record(int(group_id), audio_path)
+                                if success:
+                                    message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
+                                    sent = True
+                                from src.plugin_system.apis import generator_api
+                                await self.send_text(f"发了")
+                                status, rewrite_result, error_message = await generator_api.rewrite_reply(
+                                    chat_stream=chat_stream,
+                                    reply_data={
+                                        "raw_reply": f"TTS语音已发送: {song_name}, 消息ID: {message_id if message_id else '未知'}",
+                                        "reason": "tts_mode为True，已发送TTS语音",
+                                    },
+                                    enable_splitter=False,
+                                    enable_chinese_typo=False
+                                )
+                                if status and rewrite_result:
+                                    for reply_seg in rewrite_result:
+                                        data = reply_seg[1]
+                                        await self.send_text(data)
+                                else:
+                                    error_msg = error_message if error_message else f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}"
+                                    await self.send_text(error_msg)
+                            elif user_id:
+                                success, resp_json = napcat.send_private_record(int(user_id), audio_path)
+                                if success:
+                                    message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
+                                    sent = True
+                                from src.plugin_system.apis import generator_api
+                                status, rewrite_result, error_message = await generator_api.rewrite_reply(
+                                    chat_stream=chat_stream,
+                                    reply_data={
+                                        "raw_reply": f"TTS语音已发送: {song_name}, 消息ID: {message_id if message_id else '未知'}",
+                                        "reason": "tts_mode为True，已发送TTS语音",
+                                    },
+                                    enable_splitter=False,
+                                    enable_chinese_typo=False
+                                )
+                                if status and rewrite_result:
+                                    for reply_seg in rewrite_result:
+                                        data = reply_seg[1]
+                                        await self.send_text(data)
+                                else:
+                                    error_msg = error_message if error_message else f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}"
+                                    await self.send_text(error_msg)
+                            if sent:
+                                return True, f"TTS语音已生成并发送: {audio_path}, 消息ID: {message_id if message_id else '未知'}"
+                            else:
+                                await self.send_text("TTS语音生成成功，但发送失败")
+                                return False, "TTS语音生成成功，但发送失败"
+                        else:
+                            await self.send_text("TTS语音生成失败，API返回错误")
+                            return False, "TTS语音生成失败，API返回错误"
             except Exception as e:
                 from src.plugin_system.apis import generator_api
                 chat_stream = getattr(self, "chat_stream", None)
-                result_status, result_message = await generator_api.rewrite_reply(
+                result_status, result_message, error_message = await generator_api.rewrite_reply(
                     chat_stream=chat_stream,
                     reply_data={
                         "raw_reply": f"TTS语音生成或发送失败: {e}",
@@ -804,7 +822,7 @@ class SingAction(BaseAction):
                 from .napcat_client import NapcatClient
                 napcat = NapcatClient()
                 if group_id:
-                    success, resp_json = napcat.send_group_record(int(group_id), file_path)
+                    success, resp_json = NapcatClient.send_group_record(int(group_id), file_path)
                     if success:
                         message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
                         sent = True
@@ -824,7 +842,7 @@ class SingAction(BaseAction):
                     else:
                         await self.send_text(f"已发送: 消息ID: {message_id if message_id else '未知'}")
                 elif user_id:
-                    success, resp_json = napcat.send_private_record(int(user_id), file_path)
+                    success, resp_json = NapcatClient.send_private_record(int(user_id), file_path)
                     if success:
                         message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
                         sent = True
@@ -859,15 +877,16 @@ class SingAction(BaseAction):
                 await session.post("http://127.0.0.1:5211", data=payload)
             # from .generator_tools import generate_rewrite_reply
             chat_stream = getattr(self, "chat_stream", None)
-            result_status, result_message = await generate_rewrite_reply(
+            status, rewrite_result, error_message = await generate_rewrite_reply(
                 chat_stream, "收到,已经开始准备", "music_plugin 唤起AI翻唱准备提示润色"
             )
-            if result_status and result_message:
-                for reply_seg in result_message:
+            if status and rewrite_result:
+                for reply_seg in rewrite_result:
                     data = reply_seg[1]
                     await self.send_text(data)
             else:
-                await self.send_text("收到,已经开始准备")
+                error_msg = error_message if error_message else "收到,已经开始准备"
+                await self.send_text(error_msg)
             return True, "收到,已经开始准备"
         except Exception as e:
             return False, f"处理失败: {e}"
@@ -930,7 +949,7 @@ class MusicPlugin(BasePlugin):
             ),
             "msst_result_dir": ConfigField(
                 type=str,
-                default="D:/MSST-WebUI-zluda/results",
+                default="D:\so-vits-svc\results",
                 description="MSST分离结果目录（AI翻唱/tts语音文件查找目录）"
             )
         },
