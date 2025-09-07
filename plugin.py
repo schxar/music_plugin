@@ -216,7 +216,7 @@ import re
 
 from src.plugin_system.base.base_plugin import BasePlugin
 from src.plugin_system.apis.plugin_register_api import register_plugin
-from src.plugin_system.base.base_action import BaseAction, ActionActivationType, ChatMode
+from src.plugin_system.base.base_action import BaseAction, ActionActivationType
 from src.plugin_system.base.base_command import BaseCommand
 from src.plugin_system.base.component_types import ComponentInfo
 from src.plugin_system.base.config_types import ConfigField
@@ -244,7 +244,7 @@ import re
 from src.plugin_system.apis import send_api, chat_api
 from src.plugin_system import (
     BasePlugin, register_plugin, BaseAction, BaseCommand,
-    ComponentInfo, ActionActivationType, ChatMode
+    ComponentInfo, ActionActivationType
 )
 from src.plugin_system.base.config_types import ConfigField
 from src.common.logger import get_logger
@@ -441,15 +441,15 @@ class MusicSearchAction(BaseAction):
                         # 发送成功后调用generator生成消息
                         # from .generator_tools import generate_rewrite_reply
                         if chat_stream:
-                            result_status, result_message = await generator_api.rewrite_reply(
+                            status, llm_response = await generator_api.rewrite_reply(
                                 chat_stream=chat_stream,
                                 reply_data={
                                     "raw_reply": f"Napcat音乐卡片发送成功：{song}",
                                     "reason": "music_plugin Napcat卡片发送成功提示润色"
                                 }
                             )
-                            if result_status:
-                                for reply_seg in result_message:
+                            if status and llm_response and llm_response.reply_set:
+                                for reply_seg in llm_response.reply_set:
                                     data = reply_seg[1]
                                     await self.send_text(data)
                                     await asyncio.sleep(1.0)
@@ -622,15 +622,15 @@ class MusicCommand(BaseCommand):
                         napcat_card_sent = True
                         # 发送成功后调用generator生成消息
                         if chat_stream:
-                            result_status, result_message = await generator_api.rewrite_reply(
+                            status, llm_response = await generator_api.rewrite_reply(
                                 chat_stream=chat_stream,
                                 reply_data={
                                     "raw_reply": f"Napcat音乐卡片发送成功：{song}",
                                     "reason": "music_plugin Napcat卡片发送成功提示"
                                 }
                             )
-                            if result_status:
-                                for reply_seg in result_message:
+                            if status and llm_response and llm_response.reply_set:
+                                for reply_seg in llm_response.reply_set:
                                     data = reply_seg[1]
                                     await self.send_text(data)
                                     await asyncio.sleep(1.0)
@@ -679,7 +679,6 @@ class SingAction(BaseAction):
     normal_activation_type = ActionActivationType.ALWAYS
     activation_keywords = ["唱歌", "AI翻唱", "帮我唱", "唱一首", "AI唱歌"]
     keyword_case_sensitive = False
-    mode_enable = ChatMode.ALL
     parallel_action = True
 
     async def execute(self) -> Tuple[bool, str]:
@@ -733,7 +732,7 @@ class SingAction(BaseAction):
                                     sent = True
                                 from src.plugin_system.apis import generator_api
                                 await self.send_text(f"发了")
-                                status, rewrite_result, error_message = await generator_api.rewrite_reply(
+                                status, llm_response = await generator_api.rewrite_reply(
                                     chat_stream=chat_stream,
                                     reply_data={
                                         "raw_reply": f"TTS语音已发送: {song_name}, 消息ID: {message_id if message_id else '未知'}",
@@ -742,20 +741,19 @@ class SingAction(BaseAction):
                                     enable_splitter=False,
                                     enable_chinese_typo=False
                                 )
-                                if status and rewrite_result:
-                                    for reply_seg in rewrite_result:
+                                if status and llm_response and llm_response.reply_set:
+                                    for reply_seg in llm_response.reply_set:
                                         data = reply_seg[1]
                                         await self.send_text(data)
                                 else:
-                                    error_msg = error_message if error_message else f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}"
-                                    await self.send_text(error_msg)
+                                    await self.send_text(f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}")
                             elif user_id:
                                 success, resp_json = napcat.send_private_record(int(user_id), audio_path)
                                 if success:
                                     message_id = resp_json.get("data", {}).get("message_id") if resp_json else None
                                     sent = True
                                 from src.plugin_system.apis import generator_api
-                                status, rewrite_result, error_message = await generator_api.rewrite_reply(
+                                status, llm_response = await generator_api.rewrite_reply(
                                     chat_stream=chat_stream,
                                     reply_data={
                                         "raw_reply": f"TTS语音已发送: {song_name}, 消息ID: {message_id if message_id else '未知'}",
@@ -764,13 +762,12 @@ class SingAction(BaseAction):
                                     enable_splitter=False,
                                     enable_chinese_typo=False
                                 )
-                                if status and rewrite_result:
-                                    for reply_seg in rewrite_result:
+                                if status and llm_response and llm_response.reply_set:
+                                    for reply_seg in llm_response.reply_set:
                                         data = reply_seg[1]
                                         await self.send_text(data)
                                 else:
-                                    error_msg = error_message if error_message else f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}"
-                                    await self.send_text(error_msg)
+                                    await self.send_text(f"TTS语音已发送: 消息ID: {message_id if message_id else '未知'}")
                             if sent:
                                 return True, f"TTS语音已生成并发送: {audio_path}, 消息ID: {message_id if message_id else '未知'}"
                             else:
@@ -782,15 +779,15 @@ class SingAction(BaseAction):
             except Exception as e:
                 from src.plugin_system.apis import generator_api
                 chat_stream = getattr(self, "chat_stream", None)
-                result_status, result_message, error_message = await generator_api.rewrite_reply(
+                status, llm_response = await generator_api.rewrite_reply(
                     chat_stream=chat_stream,
                     reply_data={
                         "raw_reply": f"TTS语音生成或发送失败: {e}",
                         "reason": "tts_mode为True，TTS语音生成或发送失败提示润色",
                     }
                 )
-                if result_status and result_message:
-                    for reply_seg in result_message:
+                if status and llm_response and llm_response.reply_set:
+                    for reply_seg in llm_response.reply_set:
                         data = reply_seg[1]
                         await self.send_text(data)
                 else:
